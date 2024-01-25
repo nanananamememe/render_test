@@ -1,49 +1,103 @@
-let convertedVapidKey, subscription;
+let convertedVapidKey, subscription, cookies={};
+var socketio = io();
 
-(async _ => {
-    try {
-        // サービスワーカー登録
-        const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+(()=>{
+  var ca = document.cookie.split(';');
+  for (i=0;i<ca.length;i++){
+    var a = ca[i].split("=");
+    cookies[a[0].trim()] = a[1];
+  }
+  if (cookies.handleName) {
+    handleName.value = decodeURI(cookies.handleName);
+  }
+})();
 
-        // サーバー側で生成したパブリックキーを取得し、urlBase64ToUint8Array()を使ってUit8Arrayに変換
+const checkServieWorker = async _=>{
+  var s = navigator.serviceWorker;
+  if (!s.controller) {
+    _registServiceWorker();
+    return;
+  }
+  var r = s.ready.then(async (serviceWorkerRegistration) => {
+    // 既にプッシュメッセージのサブスクリプションがあるか？
+    await serviceWorkerRegistration.pushManager.getSubscription().then((subscription) => {
+      if (!subscription) {
+        _registServiceWorker();
+      }
+    });
+  });
+  if (cookies.handleName) {
+    let socket = socketio.connect();
+    socket.on('connect', function() {
+      _setMyName();
+    });
+  }
+};
+
+const _registServiceWorker = async function(){
+  try {
+      // サービスワーカー登録
+      const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      // サーバー側で生成したパブリックキーを取得し、urlBase64ToUint8Array()を使ってUit8Arrayに変換
+      const existsEp = await fetch('/checkendpoint',{
+        method: 'GET',
+      });
+      flg = await existsEp.text();
+      if (flg == "0") {
         const res = await fetch('/key');
-        const vapidPublicKey = await res.text();
+        vapidPublicKey = await res.text();
         convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
-
         // (変換した)パブリックキーをapplicationServerKeyに設定してsubscribe
         subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: convertedVapidKey
         });
-
-        console.log(JSON.stringify(subscription));
-
-        await fetch('/setendpoint', {
+        fetch('/setendpoint', {
             method: 'POST',
             body: JSON.stringify(subscription),
             headers: {
                 'Content-Type': 'application/json',
             },
         });
-
         // 通知の許可を求める
         Notification.requestPermission(permission => {
             console.log(permission); // 'default', 'granted', 'denied'
         });
-    } catch (err) {
-        console.log(err);
-    }
-})();
+      }
+  } catch (err) {
+      console.log(err);
+  }
+}
 
-btnWebPushTest.onclick = async evt => {
-    if (!subscription) return console.log('sbuscription is null');
-    await fetch('/webpushtest', {
-        method: 'POST',
-        body: "[]",
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
+var btnWebPushTest = async function(_that){
+  let body = {
+    vapidPublicKey  : _that.value,
+    pushTitle       : document.getElementById('pushTitle_'+_that.name).value ,
+    pushContents    : document.getElementById('pushContents_'+_that.name).value ,
+  };
+
+  await fetch('/webpushtest', {
+    method: 'POST',
+    "body": JSON.stringify(body),
+    headers: {
+        'Content-Type': 'application/json',
+    },
+  });
+};
+
+var _setMyName = async()=>{
+  var hn = handleName.value;
+  await fetch('/adduser', {
+    method: 'POST',
+    body: '{"name":"'+ hn +'"}',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+  });
+}
+
+setMyName.onclick = async evt => {
+  _setMyName();
 };
 
 function urlBase64ToUint8Array(base64String) {
@@ -56,3 +110,19 @@ function urlBase64ToUint8Array(base64String) {
     }
     return outputArray;
 }
+
+socketio.on('message',function(msg){
+  let html = "";
+  for (let i = 0; i < msg.length; i++) {
+    html +=
+      "<div>"
+      + "<span>"+msg[i].name+"</span>"
+      + "<input type='text' id='pushTitle_"+i+"' value=''>"
+      + "<input type='text' id='pushContents_"+i+"' value=''>"
+      + "<button onclick='btnWebPushTest(this);' name='"+i+"' value='"+msg[i].vapidPublicKey+"'>PUSH</button>"
+      + "</div>";
+  }
+  userlist.innerHTML = html;
+});
+
+checkServieWorker();
