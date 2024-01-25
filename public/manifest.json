@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "webpushtest",
+  "short_name": "webpushtest",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fff",
+  "description": "webpushtest",
+  "icons": [
+    {
+      "src": "bb_logo.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    }
+  ],
+  "prefer_related_applications": true,
+  "related_applications": [
+    {
+    "platform": "play",
+    "id": "com.google.samples.apps.iosched"
+    }
+  ]
+}
