@@ -30,6 +30,7 @@ app.get("/",
 )
 .get('/key', function(req,res){
   const vapidKeys = webPush.generateVAPIDKeys();
+console.log(vapidKeys);
   var publicKey = process.env.VAPID_PUBLICK_KEY || vapidKeys.publicKey;
   var privateKey = process.env.VAPID_PRIVATE_KEY || vapidKeys.privateKey;
   rc.set("prk_" + publicKey, privateKey);
