@@ -8,10 +8,26 @@
   "description": "webpushtest",
   "icons": [
     {
-      "src": "bb_logo.png",
-      "sizes": "48x48",
+      "src": "icon144.png",
+      "sizes": "144x144",
       "type": "image/png"
     }
+  ],
+  "screenshots" : [
+    {
+      "src": "screenshot1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Homescreen of Awesome App"
+    },{
+      "src": "screenshot1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Homescreen of Awesome App"
+    }
+
   ],
   "prefer_related_applications": true,
   "related_applications": [
@@ -20,4 +36,5 @@
     "id": "com.google.samples.apps.iosched"
     }
   ]
+
 }
