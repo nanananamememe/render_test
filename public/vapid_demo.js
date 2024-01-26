@@ -75,7 +75,6 @@ var btnWebPushTest = async function(_that){
     pushTitle       : document.getElementById('pushTitle_'+_that.name).value ,
     pushContents    : document.getElementById('pushContents_'+_that.name).value ,
   };
-
   await fetch('/webpushtest', {
     method: 'POST',
     "body": JSON.stringify(body),
@@ -84,6 +83,20 @@ var btnWebPushTest = async function(_that){
     },
   });
 };
+
+var btnDelUser = async function(_that){
+  let body = {
+    vapidPublicKey  : _that.value,
+  };
+  await fetch('/deluser', {
+    method: 'POST',
+    "body": JSON.stringify(body),
+    headers: {
+        'Content-Type': 'application/json',
+    },
+  });
+};
+
 
 var _setMyName = async()=>{
   var hn = handleName.value;
@@ -120,6 +133,7 @@ socketio.on('message',function(msg){
       + "<input type='text' id='pushTitle_"+i+"' value=''>"
       + "<input type='text' id='pushContents_"+i+"' value=''>"
       + "<button onclick='btnWebPushTest(this);' name='"+i+"' value='"+msg[i].vapidPublicKey+"'>PUSH</button>"
+      + "<button onclick='btnDelUser(this);' name='"+i+"' value='"+msg[i].vapidPublicKey+"'>DEL</button>"
       + "</div>";
   }
   userlist.innerHTML = html;

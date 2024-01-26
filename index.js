@@ -25,28 +25,31 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 //app.listen(80);
 
+let userListChange = async ()=>{
+  let msg = [];
+  let ks = await rc.v4.keys("nm_*");
+  for (let i=0; i < ks.length; i++){
+    let name = await rc.v4.get(ks[i]);
+    let v = {"name": name,"vapidPublicKey":ks[i].substring(3)}
+    msg.push(v);
+  }
+  io.emit('message', msg);
+}
+
 app.get("/",
   (req,res)=>res.send("GET request to the web-site.")
 )
 .get('/key', function(req,res){
   const vapidKeys = webPush.generateVAPIDKeys();
-console.log(vapidKeys);
-  var publicKey = process.env.VAPID_PUBLICK_KEY || vapidKeys.publicKey;
-  var privateKey = process.env.VAPID_PRIVATE_KEY || vapidKeys.privateKey;
+  let publicKey = process.env.VAPID_PUBLICK_KEY || vapidKeys.publicKey;
+  let privateKey = process.env.VAPID_PRIVATE_KEY || vapidKeys.privateKey;
   rc.set("prk_" + publicKey, privateKey);
   res.cookie('vapidPublicKey', publicKey);
   res.send(publicKey);
 })
 .post("/adduser",async function(req,res){
   await rc.set("nm_" + req.cookies.vapidPublicKey, req.body.name);
-  var msg = [];
-  var ks = await rc.v4.keys("nm_*");
-  for(let i=0;i<ks.length;i++){
-    var name = await rc.v4.get(ks[i]);
-    var v = {"name": name,"vapidPublicKey":ks[i].substring(3)}
-    msg.push(v);
-  }
-  io.emit('message', msg);
+  userListChange();
   res.cookie('handleName', req.body.name);
   res.send("[]");
 })
@@ -54,7 +57,7 @@ console.log(vapidKeys);
   res.send("Post Test .");
 })
 .get("/checkendpoint",async function(req,res){
-  var flg = "0";
+  let flg = "0";
   if (await rc.v4.get("sb_" + req.cookies.vapidPublicKey)) {
     flg = "1";
   }
@@ -66,8 +69,8 @@ console.log(vapidKeys);
 })
 .post("/webpushtest",async function(req,res){
   try {
-    var privateKey = await rc.v4.get("prk_" + req.body.vapidPublicKey);
-    var subscription = JSON.parse(await rc.v4.get("sb_" + req.body.vapidPublicKey));
+    let privateKey = await rc.v4.get("prk_" + req.body.vapidPublicKey);
+    let subscription = JSON.parse(await rc.v4.get("sb_" + req.body.vapidPublicKey));
     webPush.setVapidDetails('mailto:' + process.env.VAPID_MAIL_TO, req.body.vapidPublicKey, privateKey);
     setTimeout(async _ => {
       await webPush.sendNotification(subscription, JSON.stringify({
@@ -84,6 +87,18 @@ console.log(vapidKeys);
   }
   res.send("[]");
 })
+.post("/deluser",async function(req,res){
+  try {
+    rc.del("nm_" + req.body.vapidPublicKey);
+    rc.del("prk_" + req.body.vapidPublicKey);
+    rc.del("sb_" + req.body.vapidPublicKey);
+    userListChange();
+  } catch (err) {
+      console.log(err);
+  }
+  res.send("[]");
+})
+
 ;
 
 http.listen(80, function(){
